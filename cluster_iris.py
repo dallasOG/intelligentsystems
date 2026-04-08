@@ -41,6 +41,7 @@ dados_num_norm = pd.DataFrame(dados_num_norm,
 
 # --  juntar o dados_num_norm com o dados_cat_norm
 dados_norm = dados_num_norm.join(dados_cat_norm)
+# print(dados_norm.columns)
 
 #3. HIPERPARAMETRIZAR  
 #Vamos determinar o número ótimo de clusters antes do treinamento
@@ -49,53 +50,53 @@ import math
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import cdist #método para cálculo de distâncias cartesianas
 import numpy as np
-
 distortions=[] #Matriz para armazenar as distorçoes
 K = range(1, dados.shape[0])
 for i in K:
     cluster_model = KMeans(n_clusters=i, 
                            random_state=42).fit(dados_norm)
 
-# calcular e armazenar a distorção de cada treinamento
+    #calcular e armazenar a distorção de cada treinamento
+    distortions.append(
+        sum(
+            np.min(
+                cdist(dados_norm,
+                      cluster_model.cluster_centers_,
+                      'euclidean'), axis=1)/dados_norm.shape[0] 
+            )
+        )
 
-distortions.append(
-    sum(
-        np.min(
-            cdist(dados_norm,
-                  cluster_model.cluster_centers_,
-                  'euclidean'), axis=1)/dados_norm.shape[0]
-    )
-)
-
-# criar o gráfico para ilustrar com a matriz distortions x K
-
+#cria o gráfico para ilustar com a matriz distortions x K
 # fig, ax = plt.subplots()
 # ax.plot(K, distortions)
-# ax.set(xlabel='n Clusters', ylabel='Distortions')
+# ax.set(xlabel='n Clusters', ylabel='Distorcoes')
 # ax.grid()
 # plt.show()
-
-# determinar o número ótimo de clusters para o modelo
-
+    
+#Determinar o número ótimo de cluster para o modelo
 x0 = K[0]
 y0 = distortions[0]
-xn = K[-1]
+xn = K[-1]    
 yn = distortions[-1]
 distances = []
 for i in range(len(distortions)):
     x = K[i]
     y = distortions[i]
     numerador = abs(
-        (yn-y0)*x - (xn*x0)*y + xn*y0 -yn*x0
+        (yn-y0)*x - (xn-x0)*y + xn*y0 - yn*x0
     )
     denominador = math.sqrt(
         (yn-y0)**2 + (xn-x0)**2
     )
-
     distances.append(numerador/denominador)
 
-cluster_model = KMeans(
-    n_clusters = numero_clusters_otimo,
-    random_state = 42).fit(dados.norm)
+numero_clusters_otimo = K[distances.index(np.max(distances))]
 
+#Treinar o modelo com o número ótimo
+cluster_model = KMeans(
+                        n_clusters= numero_clusters_otimo,
+                        random_state= 42).fit(dados_norm)
+
+#Salvar o modelo para uso posterior
 pickle.dump(cluster_model, open('cluster_iris.pkl', 'wb'))
+
